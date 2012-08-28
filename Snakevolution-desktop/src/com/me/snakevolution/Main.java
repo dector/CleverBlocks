@@ -8,6 +8,7 @@ public class Main {
 		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
 		cfg.title = "Clever Blocks";
 		cfg.useGL20 = true;
+		cfg.resizable = false;
 		cfg.width = 800;
 		cfg.height = 480;
 		

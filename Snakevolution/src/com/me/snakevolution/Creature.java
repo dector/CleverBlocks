@@ -64,6 +64,11 @@ public class Creature extends Rectangle
 			this.addBlock(new Block(x,y));
 	}
 
+	public void kill()
+	{
+		isDead = true;
+	}
+	
 	public boolean isAlive()
 	{
 		return (!isDead && body.size() > 0);

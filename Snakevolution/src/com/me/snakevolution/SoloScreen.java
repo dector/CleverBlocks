@@ -37,6 +37,7 @@ public class SoloScreen extends AbstractScreen
 	private Creature missiles[];
 	private Texture missileTexture;
 	private boolean won;
+	private long bossTime;
 
 	public SoloScreen(MyGame game)
 	{
@@ -181,7 +182,7 @@ public class SoloScreen extends AbstractScreen
 		{
 			player.computeDimensions();
 
-			if (elapsedTime() > 1000 * 5) // launch missiles
+			if (elapsedTime() > 1000 * 3) // launch missiles
 			{
 				restartTimer();
 				for (int i = 0; i < 3; i++)
@@ -194,7 +195,7 @@ public class SoloScreen extends AbstractScreen
 
 			if (missiles[0] != null)
 			{
-				for (int i = 0; i < 5; i++)
+				for (int i = 0; i < 15; i++)
 				{
 					missiles[0].moveAtSpeed(0, -1);
 					missiles[1].moveAtSpeed(1, -1);
@@ -203,7 +204,7 @@ public class SoloScreen extends AbstractScreen
 				for (Creature m : missiles)
 				{
 					if (m.overlaps(new Rectangle(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height)))
-						player.looseOneLife();
+						player.kill();
 				}
 			}
 
@@ -230,7 +231,7 @@ public class SoloScreen extends AbstractScreen
 			bossMusic.play();
 			bossMusic.setLooping(true);
 			bossMusic.setVolume(0.5f);
-			restartTimer();
+			bossTime = TimeUtils.millis();
 		}
 
 		// //////////////////// RENDERING ///////////////////////////////
@@ -255,7 +256,8 @@ public class SoloScreen extends AbstractScreen
 			c.draw(batch, xOffset, yOffset);
 		}
 
-		player.draw(batch, xOffset, yOffset);
+		if (player.isAlive())
+			player.draw(batch, xOffset, yOffset);
 
 		if (bossIncoming)
 		{
@@ -279,7 +281,7 @@ public class SoloScreen extends AbstractScreen
 		camera.setToOrtho(false, MyGame.screenWidth, MyGame.screenHeight);
 		batch.setProjectionMatrix(camera.combined);
 
-		font.drawMultiLine(batch, "LIFE: " + player.life() + "\n" + "POWER: " + player.defense() + "\n" + "SPEED: " + player.speed(), 0, MyGame.screenHeight);
+		font.drawMultiLine(batch, "LIFE: " + player.life() + "\n" + "POWER: " + player.defense() + "\n" + "SPEED: " + player.speed(), 10, MyGame.screenHeight -10);
 
 		if (!player.isAlive())
 		{
@@ -292,6 +294,15 @@ public class SoloScreen extends AbstractScreen
 			String message = "Press Enter to try again.";
 			strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
 			strY = (MyGame.screenHeight) / 4 + font.getBounds(message).height / 2;
+			font.draw(batch, message, strX, strY);
+		}
+		
+		if (TimeUtils.millis() - bossTime < 1000 * 2 && player.isAlive())
+		{
+			font.setScale(4.0f);
+			String message = "BOSS INCOMING!";
+			float strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
+			float strY = (MyGame.screenHeight) / 2 + font.getBounds(message).height / 2;
 			font.draw(batch, message, strX, strY);
 		}
 		
@@ -315,7 +326,7 @@ public class SoloScreen extends AbstractScreen
 	public void spawnBoss()
 	{
 		float x = player.x;
-		float y = player.y + (MyGame.screenHeight) * MyGame.scale;
+		float y = player.y + ((MyGame.screenHeight) / 2) * MyGame.scale;
 
 		boss = new Creature(x, y);
 		boss.width = bossTexture.getWidth();
