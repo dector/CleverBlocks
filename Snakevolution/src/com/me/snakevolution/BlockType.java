@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.MathUtils;
 
 public enum BlockType
 {
-	YELLOW(10, 1), RED(0, 3), BLUE(3, 2), GREEN(0,0);
+	YELLOW(10, 1), RED(0, 3), BLUE(10, 2), GREEN(0,0);
 
 	private float speed;
 	private int defense;

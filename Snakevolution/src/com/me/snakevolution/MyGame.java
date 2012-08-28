@@ -19,8 +19,9 @@ public class MyGame extends Game
 	public static Texture blueBlockTexture;
 	public static Texture greenBlockTexture;
 	public static String endMessage = "YOU DIED";
-	public static float spawningSpeed = 3.0f;
+	public static float spawningSpeed = 4.0f;
 	public static float lifeCooldown = 0.1f;
+	public static boolean debugMode = false;
 
 	@Override
 	public void resize(int width, int height)

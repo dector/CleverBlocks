@@ -335,6 +335,8 @@ public class Creature extends Rectangle
 
 	public boolean overlaps(Creature c)
 	{
+		if (this.dst(c) > MyGame.gameHeight * MyGame.scale / 2)
+			return false;
 		for (Block a : this.body)
 			for (Block b : c.body)
 			{
@@ -348,6 +350,14 @@ public class Creature extends Rectangle
 	public boolean overlapsSuper(Creature c)
 	{
 		return super.overlaps(c);
+	}
+	
+	public float dst(Creature c)
+	{
+		float deltax = this.x - c.x;
+		float deltay = this.y - c.y;
+		
+		return (float) Math.sqrt((deltax * deltax) + (deltay * deltay));
 	}
 	
 	public static boolean fight(Creature a, Creature b)

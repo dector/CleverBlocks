@@ -119,39 +119,39 @@ public class SoloScreen extends AbstractScreen
 
 		// //////////////////// GAME LOGIC ///////////////////////////////
 
+		for (Creature c : creatures)
+		{
+			if (c.overlaps(player))
+			{
+				if (player.fight(c))
+				{
+					updateEatHistory();
+					if (lastSecondEatCount() >= 3)
+						eatSound3.play();
+					else if (lastSecondEatCount() >= 2)
+						eatSound2.play();
+					else
+						eatSound1.play();
+				}
+				else
+				{
+					if (player.isAlive())
+					{
+						hurtSound.play();
+						player.moveAway(c);
+						c.moveAway(player);
+					}
+					else
+						dieSound.play();
+				}
+			}
+		}
+
 		if (!bossIncoming)
 		{
 			for (Creature c : creatures)
 			{
 				c.randomMove();
-			}
-
-			for (Creature c : creatures)
-			{
-				if (c.overlaps(player))
-				{
-					if (player.fight(c))
-					{
-						updateEatHistory();
-						if (lastSecondEatCount() >= 3)
-							eatSound3.play();
-						else if (lastSecondEatCount() >= 2)
-							eatSound2.play();
-						else
-							eatSound1.play();
-					}
-					else
-					{
-						if (player.isAlive())
-						{
-							hurtSound.play();
-							player.moveAway(c);
-							c.moveAway(player);
-						}
-						else
-							dieSound.play();
-					}
-				}
 			}
 
 			for (Creature c : creatures)
@@ -169,15 +169,15 @@ public class SoloScreen extends AbstractScreen
 			while (ite.hasNext())
 			{
 				Creature b = ite.next();
-				if (b.isAlive())
-					b.normalize();
-				else
+				if (!b.isAlive() || player.dst(b) > (MyGame.screenWidth * MyGame.scale) * 2)
 					ite.remove();
+				else
+					b.normalize();
 			}
 
 			spawning();
 		}
-		else
+		else if (!won)
 		// /////// BOSS MODE
 		{
 			player.computeDimensions();
@@ -223,7 +223,7 @@ public class SoloScreen extends AbstractScreen
 
 		player.normalize();
 
-		if (player.body.size() > 200 && !bossIncoming)
+		if (player.body.size() > 800 && !bossIncoming)
 		{
 			bossIncoming = true;
 			spawnBoss();
@@ -259,7 +259,7 @@ public class SoloScreen extends AbstractScreen
 		if (player.isAlive())
 			player.draw(batch, xOffset, yOffset);
 
-		if (bossIncoming)
+		if (bossIncoming && !won)
 		{
 			// boss rendering
 
@@ -281,39 +281,42 @@ public class SoloScreen extends AbstractScreen
 		camera.setToOrtho(false, MyGame.screenWidth, MyGame.screenHeight);
 		batch.setProjectionMatrix(camera.combined);
 
-		font.drawMultiLine(batch, "LIFE: " + player.life() + "\n" + "POWER: " + player.defense() + "\n" + "SPEED: " + player.speed(), 10, MyGame.screenHeight -10);
+		String message = "LIFE: " + player.life() + "\n" + "POWER: " + player.defense() + "\n" + "SPEED: " + player.speed();
+		if (MyGame.debugMode)
+			message += "\n" + "FPS: " + 1 / Gdx.graphics.getDeltaTime();
+		font.drawMultiLine(batch, message, 10, MyGame.screenHeight - 10);
 
 		if (!player.isAlive())
 		{
-			font.setScale(4.0f);
+			font.setScale(3.0f);
 
 			float strX = ((MyGame.screenWidth) - font.getBounds(MyGame.endMessage).width) / 2;
 			float strY = ((MyGame.screenHeight) + font.getBounds(MyGame.endMessage).height) / 2;
 			font.draw(batch, MyGame.endMessage, strX, strY);
 
-			String message = "Press Enter to try again.";
+			message = "Press Enter to try again.";
 			strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
 			strY = (MyGame.screenHeight) / 4 + font.getBounds(message).height / 2;
 			font.draw(batch, message, strX, strY);
 		}
-		
-		if (TimeUtils.millis() - bossTime < 1000 * 2 && player.isAlive())
+
+		if (TimeUtils.millis() - bossTime < 1000 * 2 && player.isAlive() && !won)
 		{
-			font.setScale(4.0f);
-			String message = "BOSS INCOMING!";
+			font.setScale(3.0f);
+			message = "BOSS INCOMING!";
 			float strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
 			float strY = (MyGame.screenHeight) / 2 + font.getBounds(message).height / 2;
 			font.draw(batch, message, strX, strY);
 		}
-		
+
 		if (won)
 		{
-			font.setScale(4.0f);
-			String message = "YOU WON!";
+			font.setScale(3.0f);
+			message = "YOU WON!";
 			float strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
 			float strY = (MyGame.screenHeight) / 2 + font.getBounds(message).height / 2;
 			font.draw(batch, message, strX, strY);
-			
+
 			message = "Press Enter to try again.";
 			strX = ((MyGame.screenWidth) - font.getBounds(message).width) / 2;
 			strY = (MyGame.screenHeight) / 4 + font.getBounds(message).height / 2;
@@ -331,7 +334,7 @@ public class SoloScreen extends AbstractScreen
 		boss = new Creature(x, y);
 		boss.width = bossTexture.getWidth();
 		boss.height = bossTexture.getHeight();
-
+		restartTimer();
 		missiles = new Creature[3];
 	}
 
@@ -340,20 +343,39 @@ public class SoloScreen extends AbstractScreen
 		float chances = Gdx.graphics.getDeltaTime() / MyGame.spawningSpeed;
 		if (MathUtils.random() < chances)
 		{
-			float x = MathUtils.random(player.x - MyGame.screenWidth * MyGame.scale, player.x + MyGame.screenWidth * MyGame.scale);
-			float y = MathUtils.random(player.y - (MyGame.screenHeight * MyGame.scale) / 2, player.y + (MyGame.screenHeight * MyGame.scale) / 2);
-			if (x < MyGame.screenWidth * MyGame.scale)
+			float x = MathUtils.random(0, player.x + MyGame.screenWidth * MyGame.scale);
+			float y = MathUtils.random(0, player.y + MyGame.screenHeight * MyGame.scale);
+			if (x < player.x + (MyGame.screenWidth * MyGame.scale / 2))
 				x -= MyGame.screenWidth * MyGame.scale;
 			else
-				x += MyGame.screenWidth * MyGame.scale;
+				x += MyGame.screenWidth / 2 * MyGame.scale;
 
-			if (y < MyGame.screenHeight * MyGame.scale)
+			if (y < player.x + (MyGame.screenHeight * MyGame.scale / 2))
 				y -= MyGame.screenHeight * MyGame.scale;
 			else
-				y += MyGame.screenHeight * MyGame.scale;
+				y += MyGame.screenHeight / 2 * MyGame.scale;
 
-			creatures.add(new Creature(x, y, MathUtils.random(player.body.size() * 2)));
+			creatures.add(new Creature(x, y, MathUtils.random(player.body.size(), player.body.size() * 2)));
 		}
+
+		chances = Gdx.graphics.getDeltaTime() / 0.3f;
+		if (MathUtils.random() < chances)
+		{
+			float x = MathUtils.random(0, player.x + MyGame.screenWidth * MyGame.scale);
+			float y = MathUtils.random(0, player.y + MyGame.screenHeight * MyGame.scale);
+			if (x < player.x + (MyGame.screenWidth * MyGame.scale / 2))
+				x -= MyGame.screenWidth * MyGame.scale;
+			else
+				x += MyGame.screenWidth / 2 * MyGame.scale;
+
+			if (y < player.x + (MyGame.screenHeight * MyGame.scale / 2))
+				y -= MyGame.screenHeight * MyGame.scale;
+			else
+				y += MyGame.screenHeight / 2 * MyGame.scale;
+
+			creatures.add(new Creature(x, y, MathUtils.random(player.body.size() / 2)));
+		}
+
 	}
 
 	public void updateScale()
