@@ -4,17 +4,19 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.TimeUtils;
 
 public class MultiScreen extends AbstractScreen
 {
-	private Texture multiTexture;
+	private TextureRegion multiTexture;
 	private long startTime;
 
 	public MultiScreen(MyGame game)
 	{
 		super(game);
-		multiTexture = new Texture(Gdx.files.internal("data/multi.png"));
+		Texture multiTex = new Texture(Gdx.files.internal("data/multi.png"));
+        multiTexture = new TextureRegion(multiTex, 800, 480);
 	}
 
 	@Override

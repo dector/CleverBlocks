@@ -2,15 +2,17 @@ package com.me.cleverblocks;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class SplashScreen extends AbstractScreen
 {
-	private Texture splashTexture;
+	private TextureRegion splashTexture;
 	
 	public SplashScreen(MyGame game)
 	{
 		super(game);
-		splashTexture = new Texture(Gdx.files.internal("data/splash.png"));
+		Texture splashTex = new Texture(Gdx.files.internal("data/splash.png"));
+		splashTexture = new TextureRegion(splashTex, 800, 480);
 	}
 	
 	@Override
@@ -25,7 +27,8 @@ public class SplashScreen extends AbstractScreen
 		super.render(delta);
 		
 		batch.begin();
-		batch.draw(splashTexture, (MyGame.screenWidth - splashTexture.getWidth()) / 2,  (MyGame.screenHeight - splashTexture.getHeight()) / 2);
+		batch.draw(splashTexture, (MyGame.screenWidth - splashTexture.getRegionWidth()) / 2,
+                (MyGame.screenHeight - splashTexture.getRegionHeight()) / 2);
 		batch.end();
 		
 		if (elapsedTime() > 1000 * 3)

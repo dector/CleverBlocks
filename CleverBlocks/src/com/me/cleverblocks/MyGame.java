@@ -3,6 +3,7 @@ package com.me.cleverblocks;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class MyGame extends Game
 {

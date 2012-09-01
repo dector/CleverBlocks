@@ -4,16 +4,18 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class IntroScreen extends AbstractScreen
 {
-	private Texture introTexture;
+	private TextureRegion introTexture;
 
 	public IntroScreen(MyGame game)
 	{
 		super(game);
 
-		introTexture = new Texture(Gdx.files.internal("data/intro.png"));
+		Texture introTex = new Texture(Gdx.files.internal("data/intro.png"));
+		introTexture = new TextureRegion(introTex, 800, 480);
 	}
 
 	public void render(float delta)
