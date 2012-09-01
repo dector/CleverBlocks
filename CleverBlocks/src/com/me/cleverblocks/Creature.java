@@ -14,18 +14,26 @@ import com.badlogic.gdx.utils.TimeUtils;
 @SuppressWarnings("serial")
 public class Creature extends Rectangle
 {
-	public static float baseSpeed = 60;
-	public static int baseDefense = 0;
+	public static final float baseSpeed = 60;
+	public static final int baseDefense = 0;
+	public static final int bigSize = 10;
 	public ArrayList<Block> body;
 	private float xDir;
 	private float yDir;
 	private long lastGap;
 	private long lastWound;
 	private boolean isDead;
+	public float centerX;
+	public float centerY;
 
 	public Creature()
 	{
-		this(MathUtils.random(0.0f, MyGame.gameWidth), MathUtils.random(0.0f, MyGame.gameHeight));
+		this(0, 0);
+	}
+	
+	public Creature(int n)
+	{
+		this(0, 0, n);
 	}
 
 	public Creature(float x, float y, BlockType t)
@@ -37,17 +45,21 @@ public class Creature extends Rectangle
 		lastWound = 0;
 		lastGap = 0;
 		isDead = false;
+		
+		this.normalize();
 	}
 
 	public Creature(float x, float y)
 	{
-		super(x, y, 1, 1);
+		super(x, y, Block.blockSize, Block.blockSize);
 		body = new ArrayList<Block>();
 		body.add(new Block(x, y));
 
 		lastGap = 0;
 		lastWound = 0;
 		isDead = false;
+		
+		this.normalize();
 	}
 
 	public Creature(float x, float y, int n)
@@ -55,6 +67,8 @@ public class Creature extends Rectangle
 		this(x, y);
 		for (int i = 1; i < n; i++)
 			this.addBlock(new Block(x, y));
+		
+		this.normalize();
 	}
 
 	public Creature(float x, float y, BlockType t, int n)
@@ -62,6 +76,8 @@ public class Creature extends Rectangle
 		this(x, y, t);
 		for (int i = 1; i < n; i++)
 			this.addBlock(new Block(x, y));
+		
+		this.normalize();
 	}
 
 	public void kill()
@@ -99,14 +115,6 @@ public class Creature extends Rectangle
 			this.moveAtSpeed(xDir, yDir);
 	}
 
-	public void moveAway(Creature c)
-	{
-		float deltax = this.x - c.x;
-		float deltay = this.y - c.y;
-
-		moveAtSpeed(deltax, deltay);
-	}
-
 	public void moveToward(Creature c)
 	{
 		float deltax = c.x - this.x;
@@ -115,10 +123,29 @@ public class Creature extends Rectangle
 		moveAtSpeed(deltax, deltay);
 	}
 
+	public void moveAway(Creature c)
+	{
+		float deltax = this.centerX - c.centerX;
+		float deltay = this.centerY - c.centerY;
+
+		moveAtSpeed(deltax, deltay);
+	}
+	
 	public void moveAway(Creature c, int n)
 	{
 		for (int i = 0; i < n; i++)
 			moveAway(c);
+	}
+	
+	public void moveAwayDistance(Creature c, float d)
+	{
+		float deltax = this.centerX - c.centerX;
+		float deltay = this.centerY - c.centerY;
+		
+		Vector2 vect = new Vector2(deltax, deltay);
+		vect.nor();
+		
+		this.move(vect.x * d, vect.y * d);
 	}
 
 	public void moveAwaySuper(Creature c, int n)
@@ -149,36 +176,14 @@ public class Creature extends Rectangle
 			block.x += x;
 			block.y += y;
 		}
+		
+		updateCenter();
 	}
-
-	public void computeDimensions()
+	
+	public void updateCenter()
 	{
-		if (body.size() > 0)
-		{
-			Block firstBlock = body.get(0);
-			float x_min = firstBlock.x;
-			float y_min = firstBlock.y;
-			float x_max = x_min;
-			float y_max = y_min;
-
-			for (Block b : body)
-			{
-				if (b.x < x_min)
-					x_min = b.x;
-				if (b.y < y_min)
-					y_min = b.y;
-				if (b.x > x_max)
-					x_max = b.x;
-				if (b.y > y_max)
-					y_max = b.y;
-			}
-
-			x_max += Block.blockSize;
-			y_max += Block.blockSize;
-
-			this.width = x_max - x_min;
-			this.height = y_max - y_min;
-		}
+		this.centerX = this.x + this.width / 2;
+		this.centerY = this.y + this.height / 2;
 	}
 
 	public int life()
@@ -272,55 +277,45 @@ public class Creature extends Rectangle
 
 	public void normalize()
 	{
-		boolean done = false;
-
-		// if (body.size() > 1)
-		// {
-		// int w = (int) Math.sqrt(2 * (body.size()));
-		//
-		// int k = 1;
-		// for (int i = -w/2; i < w/2 && !done; i++)
-		// for (int j = -w/2 + i; j < w/2 -i && !done; j++)
-		// {
-		// if (x != 0 || y != 0)
-		// {
-		// this.body.get(k).x = this.x + i * Block.blockSize;
-		// this.body.get(k).y = this.y + j * Block.blockSize;
-		// k++;
-		// if (k == body.size())
-		// done = true;
-		// }
-		// }
-		// }
-
 		if (body.size() > 1)
 		{
 			int k = 1;
-			int w = MathUtils.ceil((float) Math.sqrt(body.size() + 1));
+			float sq = (float) Math.sqrt(body.size());
+			int csq = MathUtils.ceil(sq);
+			int fsq = MathUtils.floor(sq);
 
-			for (int i = (-w / 2); (i <= w / 2) && !done; i++)
-				for (int j = (-w / 2); (j <= w / 2) && !done; j++)
+			for (int y = 0; (y < csq) && k < body.size(); y++)
+			{
+				for (int x = 0; (x < csq) && k < body.size(); x++)
 				{
-					if (i != 0 || j != 0)
+					if (x != 0 || y != 0)
 					{
-						this.body.get(k).x = this.x + i * Block.blockSize;
-						this.body.get(k).y = this.y - j * Block.blockSize;
-
+						body.get(k).x = this.x + x * Block.blockSize;
+						body.get(k).y = this.y + y * Block.blockSize;
 						k++;
-						if (k == body.size())
-							done = true;
 					}
 				}
+			}
 
-			if (k < body.size())
-				Gdx.app.log("Status", "Normalization failed");
+			this.width = (csq + 1) * Block.blockSize;
+			this.height = (fsq == csq ? fsq : csq) * Block.blockSize;
 		}
+		else
+		{
+			this.width = Block.blockSize;
+			this.height = Block.blockSize;
+		}
+		
+		this.updateCenter();
 	}
 
 	public void eat(Creature c, Block b)
 	{
 		c.body.remove(b);
 		this.body.add(b);
+		
+		this.normalize();
+		c.normalize();
 	}
 
 	public void eat(Creature c)
@@ -332,6 +327,9 @@ public class Creature extends Rectangle
 			this.addBlock(b);
 			ite.remove();
 		}
+		
+		c.normalize();
+		this.normalize();
 	}
 
 	public boolean fight(Creature c)
@@ -341,16 +339,22 @@ public class Creature extends Rectangle
 
 	public boolean overlaps(Creature c)
 	{
-		if (this.dst(c) > MyGame.gameHeight * MyGame.scale / 2)
+		if (this.body.size() < Creature.bigSize && this.body.size() < Creature.bigSize)
+		{
+			if (this.dst(c) > MyGame.screenHeight * MyGame.scale / 2)
+				return false;
+			for (Block a : this.body)
+				for (Block b : c.body)
+				{
+					if (b.overlaps(a))
+						return true;
+				}
 			return false;
-		for (Block a : this.body)
-			for (Block b : c.body)
-			{
-				if (b.overlaps(a))
-					return true;
-			}
-
-		return false;
+		}
+		else
+		{
+			return super.overlaps(c); // faster collision detection
+		}
 	}
 
 	public boolean overlapsSuper(Creature c)
@@ -360,8 +364,8 @@ public class Creature extends Rectangle
 
 	public float dst(Creature c)
 	{
-		float deltax = this.x - c.x;
-		float deltay = this.y - c.y;
+		float deltax = this.centerX - c.centerX;
+		float deltay = this.centerY - c.centerY;
 
 		return (float) Math.sqrt((deltax * deltax) + (deltay * deltay));
 	}

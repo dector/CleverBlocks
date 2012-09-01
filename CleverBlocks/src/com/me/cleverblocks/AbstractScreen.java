@@ -18,7 +18,10 @@ public abstract class AbstractScreen implements Screen
 	{
 		this.game = game;
 		this.batch = new SpriteBatch();
-		this.camera = new OrthographicCamera();
+		
+		float w = Gdx.graphics.getWidth();
+		float h = Gdx.graphics.getHeight();
+		this.camera = new OrthographicCamera(1, h/w);
 
 	}
 	

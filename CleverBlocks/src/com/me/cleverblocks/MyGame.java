@@ -6,23 +6,21 @@ import com.badlogic.gdx.graphics.Texture;
 
 public class MyGame extends Game
 {
-	public static float gameWidth = 1000;
-	public static float gameHeight = 1000;
-	public static float screenWidth = 800;
-	public static float screenHeight = 480;
-	public static float maxRatio = 0.2f;
+	public static final float screenWidth = 800;
+	public static final float screenHeight = 480;
+	public static final float maxRatio = 0.2f;
 	public static float scale = 0.1f;
-	public static float scalingSpeed = 2.0f;
-	public static int tileSize = 16;
+	public static final int tileSize = 16;
 	public static Texture redBlockTexture;
 	public static Texture yellowBlockTexture;
 	public static Texture blueBlockTexture;
 	public static Texture greenBlockTexture;
-	public static String endMessage = "YOU DIED";
+	public static final String endMessage = "YOU DIED";
 	public static float spawningSpeed = 4.0f;
 	public static float lifeCooldown = 0.1f;
-	public static boolean debugMode = true;
-	public static float minAccelero = 0.5f;
+	public static final boolean debugMode = true;
+	public static final float minAccelero = 1.0f;
+	public static final float maxAccelero = 3.0f;
 
 	@Override
 	public void resize(int width, int height)

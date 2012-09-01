@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -18,7 +18,6 @@ import com.badlogic.gdx.utils.TimeUtils;
 
 public class SoloScreen extends AbstractScreen
 {
-	private OrthographicCamera camera;
 	private SpriteBatch batch;
 	private Texture tile;
 	private ArrayList<Creature> creatures;
@@ -43,12 +42,6 @@ public class SoloScreen extends AbstractScreen
 	public SoloScreen(MyGame game)
 	{
 		super(game);
-
-		float w = Gdx.graphics.getWidth();
-		float h = Gdx.graphics.getHeight();
-
-		camera = new OrthographicCamera(1, h / w);
-		camera.setToOrtho(false, MyGame.screenWidth * MyGame.scale, MyGame.screenHeight * MyGame.scale);
 
 		batch = new SpriteBatch();
 
@@ -83,6 +76,7 @@ public class SoloScreen extends AbstractScreen
 			creatures.add(new Creature());
 
 		player = new Creature(500, 500, BlockType.BLUE);
+		
 		eatHistory = new long[5];
 		bossIncoming = false;
 		won = false;
@@ -105,9 +99,10 @@ public class SoloScreen extends AbstractScreen
 		{
 			float accelerometerX = Gdx.input.getAccelerometerX();
 			float accelerometerY = Gdx.input.getAccelerometerY();
-			if (Math.abs(accelerometerX) > MyGame.minAccelero || Math.abs(accelerometerY) > MyGame.minAccelero)
+			if ((Math.abs(accelerometerX) > MyGame.minAccelero && Math.abs(accelerometerX) < MyGame.maxAccelero) || (Math.abs(accelerometerY) > MyGame.minAccelero && Math.abs(accelerometerY) < MyGame.maxAccelero))
 			{
-				player.moveAtSpeed(accelerometerX, accelerometerY);
+				player.moveAtSpeed((accelerometerY - MyGame.minAccelero) / (MyGame.maxAccelero - MyGame.minAccelero), -(accelerometerX - MyGame.minAccelero) / (MyGame.maxAccelero - MyGame.minAccelero));
+				Gdx.app.log("Move", "Moving: " + accelerometerY + " " + -accelerometerX);
 			}
 			else
 			{
@@ -121,10 +116,10 @@ public class SoloScreen extends AbstractScreen
 					deltaX = 1.0f;
 				if (Gdx.input.isKeyPressed(Keys.LEFT) || Gdx.input.isKeyPressed(Keys.Q) || Gdx.input.isKeyPressed(Keys.A))
 					deltaX = -1.0f;
-				
+
 				player.moveAtSpeed(deltaX, deltaY);
-				
-				if (deltaX == 0.0f && deltaY == 0.0f && Gdx.input.isTouched())
+
+				if (deltaX == 0.0f && deltaY == 0.0f && Gdx.input.isButtonPressed(Buttons.LEFT))
 				{
 					Vector3 touchPos = new Vector3();
 					touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -143,33 +138,33 @@ public class SoloScreen extends AbstractScreen
 				this.init();
 		}
 
-		/////////////////////// GAME LOGIC ///////////////////////////////
+		// ///////////////////// GAME LOGIC ///////////////////////////////
 
 		for (Creature c : creatures)
 		{
 			if (c.overlaps(player))
 			{
-				if (player.fight(c))
-				{
-					updateEatHistory();
-					if (lastSecondEatCount() >= 3)
-						eatSound3.play();
-					else if (lastSecondEatCount() >= 2)
-						eatSound2.play();
-					else
-						eatSound1.play();
-				}
-				else
-				{
-					if (player.isAlive())
-					{
-						hurtSound.play();
-						player.moveAway(c);
-						c.moveAway(player);
-					}
-					else
-						dieSound.play();
-				}
+//				if (false) // player.fight(c)
+//				{
+//					updateEatHistory();
+//					if (lastSecondEatCount() >= 3)
+//						eatSound3.play();
+//					else if (lastSecondEatCount() >= 2)
+//						eatSound2.play();
+//					else
+//						eatSound1.play();
+//				}
+//				else
+//				{
+//					if (player.isAlive())
+//					{
+//						hurtSound.play();
+//						player.moveAway(c);
+//						c.moveAway(player);
+//					}
+//					else
+//						dieSound.play();
+//				}
 			}
 		}
 
@@ -191,14 +186,11 @@ public class SoloScreen extends AbstractScreen
 				}
 			}
 
-			Iterator<Creature> ite = creatures.iterator();
-			while (ite.hasNext())
+			for (int i = 0; i < creatures.size(); i++)
 			{
-				Creature b = ite.next();
+				Creature b = creatures.get(i);
 				if (!b.isAlive() || player.dst(b) > (MyGame.screenWidth * MyGame.scale) * 3)
-					ite.remove();
-				else
-					b.normalize();
+					respawn(b);
 			}
 
 			spawning();
@@ -206,8 +198,6 @@ public class SoloScreen extends AbstractScreen
 		else if (!won)
 		// /////// BOSS MODE
 		{
-			player.computeDimensions();
-
 			if (elapsedTime() > 1000 * 3) // launch missiles
 			{
 				restartTimer();
@@ -247,8 +237,6 @@ public class SoloScreen extends AbstractScreen
 
 		}
 
-		player.normalize();
-
 		if (player.body.size() > 800 && !bossIncoming)
 		{
 			bossIncoming = true;
@@ -269,8 +257,8 @@ public class SoloScreen extends AbstractScreen
 		camera.setToOrtho(false, MyGame.screenWidth * MyGame.scale, MyGame.screenHeight * MyGame.scale);
 		batch.setProjectionMatrix(camera.combined);
 
-		float xOffset = ((MyGame.screenWidth * MyGame.scale) / 2) - player.x - (Block.blockSize / 2);
-		float yOffset = ((MyGame.screenHeight * MyGame.scale) / 2) - player.y - (Block.blockSize / 2);
+		float xOffset = ((MyGame.screenWidth * MyGame.scale) / 2) - player.centerX;
+		float yOffset = ((MyGame.screenHeight * MyGame.scale) / 2) - player.centerY;
 
 		batch.begin();
 
@@ -307,8 +295,12 @@ public class SoloScreen extends AbstractScreen
 		batch.setProjectionMatrix(camera.combined);
 
 		String message = "LIFE: " + player.life() + "\n" + "POWER: " + player.defense() + "\n" + "SPEED: " + player.speed();
+
 		if (MyGame.debugMode)
 			message += "\n" + "FPS: " + 1 / Gdx.graphics.getDeltaTime();
+		message += "\n" + "Accelerometer X: " + Gdx.input.getAccelerometerX();
+		message += "\n" + "Accelerometer Y: " + Gdx.input.getAccelerometerY();
+
 		font.drawMultiLine(batch, message, 10, MyGame.screenHeight - 10);
 
 		if (!player.isAlive())
@@ -368,38 +360,27 @@ public class SoloScreen extends AbstractScreen
 		float chances = Gdx.graphics.getDeltaTime() / MyGame.spawningSpeed;
 		if (MathUtils.random() < chances)
 		{
-			float x = MathUtils.random(0, player.x + MyGame.screenWidth * MyGame.scale);
-			float y = MathUtils.random(0, player.y + MyGame.screenHeight * MyGame.scale);
-			if (x < player.x + (MyGame.screenWidth * MyGame.scale / 2))
-				x -= MyGame.screenWidth * MyGame.scale;
-			else
-				x += MyGame.screenWidth / 2 * MyGame.scale;
-
-			if (y < player.x + (MyGame.screenHeight * MyGame.scale / 2))
-				y -= MyGame.screenHeight * MyGame.scale;
-			else
-				y += MyGame.screenHeight / 2 * MyGame.scale;
-
-			creatures.add(new Creature(x, y, MathUtils.random(player.body.size(), player.body.size() * 2)));
+			Creature c = new Creature(MathUtils.random(player.body.size(), player.body.size() * 2));
+			respawn(c);
+			creatures.add(c);
 		}
 
 		chances = Gdx.graphics.getDeltaTime() / 0.3f;
 		if (MathUtils.random() < chances)
 		{
-			float x = MathUtils.random(0, player.x + MyGame.screenWidth * MyGame.scale);
-			float y = MathUtils.random(0, player.y + MyGame.screenHeight * MyGame.scale);
-			if (x < player.x + (MyGame.screenWidth * MyGame.scale / 2))
-				x -= MyGame.screenWidth * MyGame.scale;
-			else
-				x += MyGame.screenWidth / 2 * MyGame.scale;
-
-			if (y < player.x + (MyGame.screenHeight * MyGame.scale / 2))
-				y -= MyGame.screenHeight * MyGame.scale;
-			else
-				y += MyGame.screenHeight / 2 * MyGame.scale;
-
-			creatures.add(new Creature(x, y, MathUtils.random(player.body.size() / 2)));
+			Creature c = new Creature(MathUtils.random(player.body.size(), player.body.size() * 2));
+			respawn(c);
+			creatures.add(c);
 		}
+	}
+
+	public void respawn(Creature c)
+	{
+		float x = MathUtils.random(player.centerX - (MyGame.screenWidth / 2) * MyGame.scale, player.centerX + (MyGame.screenWidth / 2) * MyGame.scale);
+		float y = MathUtils.random(player.centerY - (MyGame.screenHeight / 2) * MyGame.scale, player.centerY + (MyGame.screenHeight / 2) * MyGame.scale);
+
+		c.moveTo(x, y);
+		c.moveAwayDistance(player, (MyGame.screenWidth + (c.width / 2)) * MyGame.scale);
 
 	}
 
@@ -410,7 +391,6 @@ public class SoloScreen extends AbstractScreen
 
 	public float getCurrentScale()
 	{
-		player.computeDimensions();
 		float maxRatio = Math.max(player.width / MyGame.screenWidth, player.height / MyGame.screenHeight);
 		float newRatio = maxRatio / MyGame.maxRatio;
 
